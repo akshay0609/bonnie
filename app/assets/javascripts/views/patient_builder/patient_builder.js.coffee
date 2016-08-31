@@ -35,6 +35,7 @@ class Thorax.Views.PatientBuilder extends Thorax.Views.BonnieView
       @$('.criteria-data').removeClass("#{Thorax.Views.EditCriteriaView.highlight.valid} #{Thorax.Views.EditCriteriaView.highlight.partial}")
       @$('.highlight-indicator').removeAttr('tabindex').empty()
     @valueSetCodeCheckerView = new Thorax.Views.ValueSetCodeChecker(patient: @model, measure: @measure)
+    @materialize()
 
   dataCriteriaCategories: ->
     categories = {}
@@ -156,6 +157,47 @@ class Thorax.Views.PatientBuilder extends Thorax.Views.BonnieView
     @populationLogicView.setPopulation population
     bonnie.navigate "measures/#{@measure.get('hqmf_set_id')}/patients/#{@model.id}/edit"
 
+  calculateAllResults: (callback) =>
+    populations = @measure.get('populations')
+    population_index = 0
+    population_names = Thorax.Models.Measure.allPopulationCodes
+    results = [];
+    
+    final_pops = [];
+    for mkey, mvalue of populations.models
+      this_pop = ['rationale', 'finalSpecifics'];
+      for dankey in population_names
+        for mv of mvalue.attributes
+          if dankey == mv
+            this_pop.push dankey
+      final_pops[mkey] = this_pop
+      
+      final_pops
+    
+    calcNextResult = () =>
+      popCalc = populations.models[population_index].calculate(@model)
+      popCalc.calculation.done(() =>
+        results.push popCalc
+        if ++population_index < populations.length
+          calcNextResult()
+        else
+          calc_results = []
+          count = 0
+          for result in results
+            calc_result = 
+              population_index: count++
+              measure_id: @measure.get('hqmf_set_id')
+            
+            for rkey, rvalue of result.attributes
+              if rkey in final_pops[population_index-1]
+                calc_result[rkey] = rvalue
+            calc_results.push calc_result
+          callback(calc_results)
+        )
+    calcNextResult()
+  
+  
+  
   save: (e, options) ->
     e.preventDefault()
     options = _.extend({}, options)
@@ -163,29 +205,39 @@ class Thorax.Views.PatientBuilder extends Thorax.Views.BonnieView
     $(e.target).button('saving').prop('disabled', true)
     @serializeWithChildren()
     @model.sortCriteriaBy 'start_date', 'end_date'
-    status = @originalModel.save @model.toJSON(),
-      success: (model) =>
-        @patients.add model # make sure that the patient exist in the global patient collection
-        @measure?.get('patients').add model # and the measure's patient collection
-        if bonnie.isPortfolio
-          @measures.each (m) -> m.get('patients').add model
-        if @routeToPatientDashboard #Check that is passed in from PatientDashboard, to Route back to patient dashboard.
-          route = if @measure then "measures/#{@measure.get('hqmf_set_id')}/patient_dashboard" else "patients"
-        else
-          route = if @measure then "measures/#{@measure.get('hqmf_set_id')}" else "patients"
-        bonnie.navigate route, trigger: true
-        options.success(model) if options.success
-    unless status
-      $(e.target).button('reset').prop('disabled', false)
-      messages = []
-      for [cid, field, message] in @originalModel.validationError
-        # Location holds the cid of the model with the error, either toplevel or a data criteria, from whcih we get the view
-        if cid == @originalModel.cid
-          @$(":input[name=#{field}]").closest('.form-group').addClass('has-error')
-        else
-          @$("[data-model-cid=#{cid}]").view().highlightError(e, field)
-        messages.push message
-      @$('.alert').text(_(messages).uniq().join('; ')).removeClass('hidden')
+    
+    @calculateAllResults((calc_results) =>
+      patientJSON = @model.toJSON()
+      patientJSON.calc_results = calc_results
+      # Need to have silent: true on save so that the change event (which clears calc_results) doesn't fire 
+      status = @originalModel.save patientJSON,
+        silent: true
+        success: (model) =>
+          # We need to clear the cache so that page you are returned to will be forced to refresh its cache for calc_results
+          if @.parent._view.patients.get(model)
+            @.parent._view.patients.get(model).unset('calc_results')
+          @patients.add model # make sure that the patient exist in the global patient collection
+          @measure?.get('patients').add model # and the measure's patient collection
+          if bonnie.isPortfolio
+            @measures.each (m) -> m.get('patients').add model
+          if @routeToPatientDashboard #Check that is passed in from PatientDashboard, to Route back to patient dashboard.
+            route = if @measure then "measures/#{@measure.get('hqmf_set_id')}/patient_dashboard" else "patients"
+          else
+            route = if @measure then "measures/#{@measure.get('hqmf_set_id')}" else "patients"
+          bonnie.navigate route, trigger: true
+          options.success(model) if options.success
+      unless status
+        $(e.target).button('reset').prop('disabled', false)
+        messages = []
+        for [cid, field, message] in @originalModel.validationError
+          # Location holds the cid of the model with the error, either toplevel or a data criteria, from whcih we get the view
+          if cid == @originalModel.cid
+            @$(":input[name=#{field}]").closest('.form-group').addClass('has-error')
+          else
+            @$("[data-model-cid=#{cid}]").view().highlightError(e, field)
+          messages.push message
+        @$('.alert').text(_(messages).uniq().join('; ')).removeClass('hidden')
+      )
 
   cancel: (e) ->
     # Go back to wherever the user came from, if possible
@@ -244,9 +296,23 @@ class Thorax.Views.PatientBuilder extends Thorax.Views.BonnieView
       top: shiftDown
       bottom: $logic.nextAll(':visible').height() || 0
 
+  showCompare: ->
+    if @patientCompareView
+      @patientCompareView.remove()
+
+    upsums = @measure.get('upload_summaries')
+    $.when(upsums.fetchDeferred())
+      .then( -> upsums.at(0).fetchDeferred() )
+      .then((latestUpsum) => 
+        @patientCompareView = new Thorax.Views.PatientBuilderCompare(model: @model, measure: @measure, patients: @patients, measures: @measures, latestupsum: upsums.at(0), viaRoute: "fromEdit")
+        @patientCompareView.appendTo('#patient-compare-content')
+        @$('#patient-compare-dialog').modal('show')
+        )
+    
 
 class Thorax.Views.BuilderPopulationLogic extends Thorax.LayoutView
   template: JST['patient_builder/population_logic']
+  # This view will take a arguement of isCompareView (boolean) that when true will disable the scrolling arrows.
   setPopulation: (population) ->
     population.measure().set('displayedPopulation', population)
     @setModel(population)

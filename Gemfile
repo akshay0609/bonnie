@@ -15,8 +15,8 @@ gem "non-stupid-digest-assets"
 
 #gem 'cql_qdm_patientapi', :path => '../cql_qdm_patientapi'
 gem 'cql_qdm_patientapi', :git => 'https://github.com/projecttacoma/cql_qdm_patientapi.git', :branch => 'master'
+gem 'health-data-standards', :git => 'https://github.com/projectcypress/health-data-standards.git', :branch => 'bonnie_master_2016'
 
-gem 'health-data-standards', :git => 'https://github.com/projectcypress/health-data-standards.git', :branch => 'master'
 gem 'simplexml_parser', :git => 'https://github.com/projecttacoma/simplexml_parser.git', :branch => 'master'
 gem 'hqmf2js', :git => 'https://github.com/projecttacoma/hqmf2js.git', :branch => 'master'
 gem 'bonnie_bundler', :git => 'https://github.com/projecttacoma/bonnie_bundler.git', :branch => 'master'
@@ -52,6 +52,8 @@ gem 'apipie-rails', :git => 'https://github.com/hossenlopp/apipie-rails', :branc
 gem 'maruku' # enable Markup for API documentation
 gem 'doorkeeper', '=3.0.0'
 gem "doorkeeper-mongodb", :git => 'https://github.com/doorkeeper-gem/doorkeeper-mongodb', :branch => 'master'
+
+gem 'mongoid-history'    # For adding versions
 
 group :test, :development, :ci do
   gem 'pry'

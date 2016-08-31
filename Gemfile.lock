@@ -27,8 +27,8 @@ GIT
 
 GIT
   remote: https://github.com/projectcypress/health-data-standards.git
-  revision: 37a7c72da5c29e4462faff6a72ec70108652f56e
-  branch: master
+  revision: 8db65b4571e67fbcf7d61d6ab570643f2d69b270
+  branch: bonnie_master_2016
   specs:
     health-data-standards (3.6.1)
       activesupport (~> 4.1.1)
@@ -68,7 +68,7 @@ GIT
 
 GIT
   remote: https://github.com/projecttacoma/patientapi.git
-  revision: 8f6a7657cacb0ef27b6a495ba4e5d636d1edf694
+  revision: 10298520ee60416387ef1f9836bc351fc9a9e1c2
   branch: master
   specs:
     hquery-patient-api (1.0.4)
@@ -157,12 +157,13 @@ GEM
       responders
       thread_safe (~> 0.1)
       warden (~> 1.2.3)
-    diffy (3.0.7)
+    diffy (3.1.0)
     docile (1.1.5)
     domain_name (0.5.20160615)
       unf (>= 0.0.5, < 1.0.0)
     doorkeeper (3.0.0)
       railties (>= 3.2)
+    easy_diff (1.0.0)
     erubis (2.7.0)
     eventmachine (1.0.7)
     exception_notification (4.1.1)
@@ -176,7 +177,7 @@ GEM
       multi_json
       sprockets (>= 2.0.3)
       tilt
-    hashdiff (0.2.3)
+    hashdiff (0.3.0)
     highline (1.7.8)
     hike (1.2.3)
     htmlentities (4.3.4)
@@ -218,6 +219,14 @@ GEM
       moped (~> 2.0.0)
       origin (~> 2.1)
       tzinfo (>= 0.3.37)
+    mongoid-compatibility (0.3.1)
+      activesupport
+      mongoid (>= 2.0)
+    mongoid-history (0.5.0)
+      activesupport
+      easy_diff
+      mongoid (>= 3.0)
+      mongoid-compatibility
     mongoid-tree (1.0.4)
       mongoid (>= 3.0, <= 4.0)
     moped (2.0.7)
@@ -327,10 +336,10 @@ GEM
     unf_ext (0.0.7.2)
     uuid (2.3.8)
       macaddr (~> 1.0)
-    vcr (3.0.1)
+    vcr (3.0.3)
     warden (1.2.3)
       rack (>= 1.0)
-    webmock (1.22.3)
+    webmock (2.1.0)
       addressable (>= 2.3.6)
       crack (>= 0.3.2)
       hashdiff
@@ -362,6 +371,7 @@ DEPENDENCIES
   maruku
   minitest
   mongoid
+  mongoid-history
   multi_json
   newrelic_rpm
   non-stupid-digest-assets
